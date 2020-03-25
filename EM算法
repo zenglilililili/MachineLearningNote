@@ -1,0 +1,91 @@
+EM是由于样本中存在隐变量，样本分布的参数又未知，则需要用EM算法来进行计算。
+## 三硬币问题
+例：（三硬币模型）三枚硬币，分别记作A,B,C.这些硬币出现正面的概率分别为$\pi,p,q$，进行如下试验：先抛A硬币，A为正面选B，A为反面选C；然后抛选出的B或C硬币，正面记作1，反面记作0；独立重复n次试验（n=10），观测结果为$1,1,0,1,0,0,1,0,1,1$,试求出$\pi,p,q$.
+## 符号定义
+观测值$Y=(Y_1,Y_2,...,Y_n)^T=(1,1,0,1,0,0,1,0,1,1)^T$，
+未观测值$Z=(Z_1,Z_2,...,Z_n)^T$表示硬币A的正反面，取值为0或1，Y和Z为随机变量。
+$\theta=(\pi,p,q)$为模型参数
+则观测数据的**似然函数**为$L(\theta)$,是产生这组观测值的概率,$$L(\theta)=P(Y|\theta)=\sum_ZP(Z|\theta)P(Y|Z,\theta)=\Pi^n_{j=1}[\pi p^{y_j}(1-p)^{1-y_j}+(1-\pi )q^{y_j}(1-q)^{1-y_j}]$$
+其**对数似然**为$LL(\theta)=log\sum^n_{j=1}[\pi p^{y_j}(1-p)^{1-y_j}+(1-\pi )q^{y_j}(1-q)^{1-y_j}]$
+需要求使$L(\theta)$最大的$\theta$,即$\hat{\theta}=arg \displaystyle\max_{\theta}logL(\theta)$
+
+但是这式子无法求解，所以需要EM算法来迭代求解：
+## EM算法
+### **E步**：
+计算完全数据的对数似然函数对于Z的**期望**，即在模型$\theta$的结果下，产生Y观测值，隐变量是Z的概率的均值？？？
+$$\begin{aligned}
+Q(\theta,\theta^{(i)})&=E_{Z|Y,\theta^{(i)}}[log(P(Y,Z|\theta))]\\
+&=\sum^n_{j=1}\sum_{z_j}[p(z_j|y_j,\theta^{(i)})log(p(y_j,z_j|\theta))]\\
+&=\sum^n_{j=1}[p(z_j=1|y_j,\theta^{(i)})log(p(y_j,z_j=1|\theta))]+[p(z_j=0|y_j,\theta^{(i)})log(p(y_j,z_j=0|\theta))]
+\end{aligned}$$
+
+$\bm{log(P(Y,Z|\theta))}=\sum^n_{j=1}log(p(y_j,z_j|\theta))$是一个联合概率，为完全数据的对数似然函数，表示在参数$\theta$的条件下，产生这组$Y,Z$的观测值的概率
+$p(y_j,z_j=1|\theta)=p(y_j|z_j=1,\theta)p(z_j=1|\theta)=\pi p^{y_j}(1-p)^{1-y_j}$
+$p(y_j,z_j=0|\theta)=p(y_j|z_j=0,\theta)p(z_j=0|\theta)=(1-\pi) q^{y_j}(1-q)^{1-y_j}$
+
+$\bm{P(z_j|y_j,\theta^{(i)})}$是一个后验概率，表示在观测数据$y_j$和当前参数$\theta^{(i)}$下隐变量$z_j$的条件概率分布，$\mu ^{(i+1)}$是一个定值，相当于常数
+如：计算在模型参数$\pi^{(i)},p^{(i)},q^{(i)}$下观测数据$y_j$是来自B硬币的条件概率，然后进行加权求和就为选中硬币B的期望
+$$\begin{aligned}
+P(z_j=1|y_j,\theta^{(i)})&=\mu^{(i+1)}\\
+&={{p(y_j,z_j=1)}\over{p(y_j)}}\\
+&={{p(y_j|z_j=1)p(z_j=1)}\over{\sum_{z_j}p(y_j,z_j)}}\\
+&={{p(y_j|z_j=1)p(z_j=1)}\over{p(y_j|z_j=1)+p(y_j|z_j=0)}}\\
+&={{\pi^{(i)}(p^{(i)})^{y_j}(1-p^{(i)})^{1-y_j}}\over{  \pi^{(i)}(p^{(i)})^{y_j}(1-p^{(i)})^{1-y_j} +(1-\pi^{(i)})(q^{(i)}) ^{y_j}(1-q^{(i)})^{1-y_j} }}\\
+\\
+P(z_j=1|y_j,\theta^{(i)})&=1-\mu^{(i+1)}
+\end{aligned}$$
+代入$Q$有：
+
+$$\begin{aligned}
+Q(\theta,\theta^{(i)})&=E_{Z|Y,\theta^{(i)}}[log(P(Y,Z|\theta))]\\
+&=\sum^n_{j=1}\sum_{z_j}[p(z_j|y_j,\theta^{(i)})log(p(y_j,z_j|\theta))]\\
+&=\sum^n_{j=1}[p(z_j=1|y_j,\theta^{(i)})log(p(y_j,z_j=1|\theta))]+[p(z_j=0|y_j,\theta^{(i)})log(p(y_j,z_j=0|\theta))]\\
+&=\sum^n_{j=1}\mu^{(i+1)}_jlog(\pi p^{y_j}(1-p)^{1-y_j})+(1-\mu^{(i+1)}_j)log((1-\pi) q^{y_j}(1-q)^{1-y_j})
+\end{aligned}$$
+
+
+### **M步**：
+求使$Q(\theta)$极大化的$\theta$
+用$Q$函数对参数求偏导，${{\partial Q}\over{\partial \pi}},{{\partial Q}\over{\partial p}},{{\partial Q}\over{\partial q}}$,再令其为0即可求得参数（$\mu ^{(i+1)}$是一个定值，相当于常数）
+(1)对$\pi$求偏导和估计
+$$\begin{aligned}
+{{\partial Q}\over{\partial \pi}}&=\sum^n_{j=1} \{\mu ^{(i+1)}_j*{1\over {p^{y_j}(1-p)^{1-y_j}\pi}}*p^{y_j}(1-p)^{1-y_j}-(1-\mu^{(i+1)}_j)*{1\over{q^{y_j}(1-q)^{1-y_j}(1-\pi)}}*q^{y_j}(1-q)^{1-y_j}\}\\
+&=\sum^n_{j=1}\{\mu ^{(i+1)}_j*{1\over \pi}-(1-\mu^{(i+1)}_j)*{1\over {1-\pi}}\}\\
+&=\sum^n_{j=1}{{\mu^{(j+1)}_j}-\pi\over{\pi(1-\pi)}}\\
+&=0
+\\ 则\pi^{(i+1)}&={1\over n}\sum^n_{j=1}\mu^{(i+1)}_j 
+\end{aligned}
+$$
+(2)对$p$求偏导和估计
+
+$$\begin{aligned}
+{{\partial Q}\over{\partial p}}&=\sum^n_{j=1}\mu^{(i+1)}_j*{1\over{\pi p^{y_j} (1-p)^{1-y_j}}}*[\pi y_j{{(1-p)}^{1-y_j}\over{p^{1-y_j}}}-\pi (1-y_j){{p^{y_j}}\over{(1-p)^{y_j}}}]\\
+&=\sum^n_{j=1}\mu^{(i+1)}_j*{1\over{\pi p^{y_j} (1-p)^{1-y_j}}}*\pi*{y_j*(1-p)^{1-y_j}*(1-p)^{y_j}-(1-y_j)*p^{y_j}*{p^{1-y_j}}\over{p^{1-y_j}*(1-p)^{y_j}}}\\
+&=\sum^n_{j=1}\mu^{(i+1)}_j*{{y_j(1-p)-(1-y_j)p}\over{p*(1-p)}} \\
+&=\sum^n_{j=1}\mu^{(i+1)}_j*{{y_j-p}\over{p*(1-p)}} \\
+&=0\\
+则p^{(i+1)}&={{\sum^n_{j=1}\mu^{(i+1)}_jy_j}\over{\sum^n_{j=1}\mu^{(i+1)}_j}}
+\end{aligned}$$
+
+(3)对$q$求偏导和估计
+$$\begin{aligned}
+{{\partial Q}\over{\partial q}}&=\sum^n_{j=1}(1-\mu^{(i+1)}_j){1\over{(1-\pi) q^{y_j}(1-q)^{1-y_j}}}*[(1-\pi)y_j{{(1-q)^{1-y_j}}\over{q^{1-y_j}}}-(1-\pi)(1-y_j){{q^{y_j}}\over{(1-q)^{y_j}}}]\\
+&=\sum^n_{j=1}(1-\mu^{(i+1)}_j){1\over{(1-\pi) q^{y_j}(1-q)^{1-y_j}}}*(1-\pi)*{{y_j(1-q)^{1-y_j}*(1-q)^{y_j}-(1-y_j)q^{1-y_j}*q^{y_j}}\over{(1-q)^{y_j}*q^{1-y_j}}}\\
+&=\sum^n_{j=1}(1-\mu^{(i+1)}_j){{    y_j(1-q)-(1-y_j)q  }\over{(1-q)*q}}\\
+&=\sum^n_{j=1}(1-\mu^{(i+1)}){{y_j-q}\over{q(1-q)}}\\
+&=0\\
+则q^{(i+1)}&={{\sum^n_{j=1}(1-\mu^{(i+1)}_j)y_j}\over{\sum^n_{j=1}(1-\mu^{(i+1)}_j)}}
+\end{aligned}$$
+
+
+进行数字计算，假定模型参数$\pi^{(0)}=0.5,p^{(0)}=0.5,q^{(0)}=0.5$
+
+则对于$y_j=1$和$y_j=0$，$E$步中都有$\mu^{(1)}_j={{\pi^{(i)}(p^{(i)})^{y_j}(1-p^{(i)})^{1-y_j}}\over{  \pi^{(i)}(p^{(i)})^{y_j}(1-p^{(i)})^{1-y_j} +(1-\pi^{(i)})(q^{(i)}) ^{y_j}(1-q^{(i)})^{1-y_j} }}=0.5$
+
+则根据$M$步可以得到$\pi^{(1)}=0.5,p^{(1)}=0.6,q^{(1)}=0.6$已经收敛
+
+## 不懂就问
+
+？为何会收敛
+？期望为什么是条件概率与联合概率的求乘积
+？$\mu$为何是定值
